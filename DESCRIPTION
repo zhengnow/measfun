@@ -1,0 +1,13 @@
+Package: measfun
+Title: Summarize Measurement of Accuracy in Tables, Assess Agreement
+Version: 0.0.1.0
+Authors@R: 
+    person("Junting", "Zheng", , "jtzheng@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: Summarize sensitivity, specificity, PPV, NPV, LR+ and LR-. Assess agreement using kappa and CCC for 2 or more readers in clustered data. 
+Imports: pROC, irr, boot 
+License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
+    license
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
