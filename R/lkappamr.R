@@ -11,7 +11,7 @@
 #' @return a list including n, the number of ratings, Light's kappa, and a p value
 #'
 #' @details
-#' kappa2r calculates Cohen's kappa with 95% bootstrapped confidence intervals.
+#' lkappamr calculates Lights's kappa with 95% bootstrapped confidence intervals.
 #' The confidence interval is the bias corrected ("bca") confidence interval. For clustered data, use kappa2r.clu
 #' Check the categories in every rating are in the same order.
 #'
@@ -30,8 +30,10 @@
 # --------------------------
 # under construction
 lkappamr <-
-  function(ratings, weight=c("equal", "unweighted", "squared")) {
+  function(ratings, weight=c("equal", "unweighted", "squared"),  ...) {
+
     ratings <- as.matrix(na.omit(ratings))
+
     if (is.character(weight))
       weight = match.arg(weight)
 
@@ -64,13 +66,19 @@ lkappamr <-
     chanceP <- 1 - B/ns^(choose(nr, 2) * 2)
     varkappa <- chanceP/(ns * (1 - chanceP))
     SEkappa <- sqrt(varkappa)
-    u <- value/SEkappa
-    p.value <- 2 * (1 - pnorm(abs(u)))
+    upper_ci <- value + 1.96*SEkappa
+    lower_ci <- value - 1.96*SEkappa
+    #u <- value/SEkappa
+    #p.value <- 2 * (1 - pnorm(abs(u)))
     rval <-
       structure(
-        list(method = "Light's Kappa for m Ratings",
-             subjects = ns, raters = nr, irr.name = "Kappa", value = value,
-             stat.name = "z", statistic = u, p.value = p.value),
+        list(method = paste0("Light's Kappa for m Ratings (Weights: ",
+                             paste(weight, collapse = ","), ")"),
+             subjects = ns, raters = nr,
+
+             meas.name = "kappa",
+             value = value,
+             lower_ci = lower_ci, upper_ci = upper_ci),
         class = "measfunlist")
     return(rval)
   }

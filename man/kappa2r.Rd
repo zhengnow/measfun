@@ -11,6 +11,8 @@ kappa2r(v1, v2, weight = "equal", nboot = 500, cluster = FALSE, clu.id = NULL)
 
 \item{weight}{one of c("equal","squared", "unweighted"), default is "equal"}
 
+\item{nboot}{number of repetitions in bootstrapping}
+
 \item{cluster}{TRUE/FALSE, whether the data is clustered}
 
 \item{clu.id}{subject id, when data is clustered}
