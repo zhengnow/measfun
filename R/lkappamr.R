@@ -7,6 +7,7 @@
 #'
 #' @param ratings a matrix, categorical ratings
 #' @param weight one of c("equal","squared", "unweighted"), default is "equal"
+#' #' @param rating.level default is NULL. Recommend specifying when ratings are factors.
 #'
 #' @return a list including n, the number of ratings, Light's kappa, and a p value
 #'
@@ -30,9 +31,19 @@
 # --------------------------
 # under construction
 lkappamr <-
-  function(ratings, weight=c("equal", "unweighted", "squared"),  ...) {
+  function(ratings,
+           weight=c("equal", "unweighted", "squared"),
+           rating.level = NULL,
+           ci.level = 0.95, ...) {
 
-    ratings <- as.matrix(na.omit(ratings))
+    ratings <- na.omit(ratings)
+
+    if(!is.null(rating.level)) lev <- rating.level
+    else {
+      ratings <- as.matrix(ratings)
+      lev <- levels(as.factor(ratings))
+    }
+    levlen <- length(levels(as.factor(ratings)))
 
     if (is.character(weight))
       weight = match.arg(weight)
@@ -45,8 +56,7 @@ lkappamr <-
       else kappas <- c(kappas, irr::kappa2(ratings[, c(i, j)], weight = "u")$value)
     }
     value <- mean(kappas)
-    lev <- levels(as.factor(ratings))
-    levlen <- length(levels(as.factor(ratings)))
+
     for (nri in 1:(nr - 1)) for (nrj in (nri + 1):nr) {
       for (i in 1:levlen) for (j in 1:levlen) {
         if (i != j) {
@@ -66,10 +76,10 @@ lkappamr <-
     chanceP <- 1 - B/ns^(choose(nr, 2) * 2)
     varkappa <- chanceP/(ns * (1 - chanceP))
     SEkappa <- sqrt(varkappa)
-    upper_ci <- value + 1.96*SEkappa
-    lower_ci <- value - 1.96*SEkappa
-    #u <- value/SEkappa
-    #p.value <- 2 * (1 - pnorm(abs(u)))
+    clvl <- qnorm((1+ci.level)/2)
+    upper_ci <- value + clvl*SEkappa
+    lower_ci <- value - clvl*SEkappa
+
     rval <-
       structure(
         list(method = paste0("Light's Kappa for m Ratings (Weights: ",

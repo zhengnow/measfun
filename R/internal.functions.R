@@ -12,7 +12,7 @@ if (interactive()) {
 }
 
 
-# function to stop the function when exprs is not satisfied
+# function to stop the function when the expression is not satisfied
 assert_stopifnot <-
   function(exprs) eval.parent(substitute(stopifnot(exprs = exprs)))
 

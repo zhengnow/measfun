@@ -2,27 +2,28 @@
 #' Table the measures of accuracy
 #'
 #' The function estimate the measures of accuracy (without adjustment)
-#' for a test variable and a binary reference variable, independent or clustered data.
+#' for a test variable and a binary reference variable, independent observations or clustered data.
 #'
 #' @param var a vector, test variable
 #' @param reference a binary reference variable
 #' @param thres a numeric value, the threshold value when the test variable is continuous
 #' @param ci TRUE/FALSE, whether to include the confidence interval in the output
+#' @param ci.level the confidence level for the confidence interval calculation, default is 0.95
 #' @param cluster TRUE/FALSE, an indicator of whether the data is clustered. The data was assume to adopt simple random sampling with equal weights
-#' @param id subject ID variable, when data is clustered
+#' @param id subject cluster id, when data is clustered
 #'
 #'@details
 #'tbaccu outputs the table including estimates of sensitivity, specificity, PPV and NPV.
 #' The test variable, when applicable, are dichotomized at the threshold value.
-#' When the data is clustered, the survey package is used to estimate the confidence interval,
-#' assumed simple random sampling.
+#' When the data is clustered, the survey package is used to estimate the confidence intervals,
+#' assuming simple random sampling.
 #'
-#' @return a data frame for the estimates, with the 95%CI (optional), and the counts
+#' @return a data frame on measure of accuracy estimates, with the 95%CI (optional), and the counts.
 #'
 #' @examples
 #' y <- rbinom(n=50, size=1, prob=0.3) # reference variable
-#' x <- rnorm(n=50, mean=20, sd=5)
-#' tbaccu(x,y, thres = 20)
+#' x <- rnorm(n=50, mean=20, sd=5) # test variable
+#' tbaccu(x, y, thres = 20)
 #'
 #' @export
 #'
@@ -34,7 +35,7 @@
 # report sensitivity, specificity, PPV and NPV
 # --------------------------------------------
 tbaccu <-
-  function(var, reference, thres=NULL, ci=TRUE, cluster=FALSE, id = NULL){
+  function(var, reference, thres=NULL, ci=TRUE, ci.level = 0.95, cluster=FALSE, id = NULL){
 
   # if the reference has more than 2 levels, quit and print error message
   assert_stopifnot(length(table(reference))==2)
@@ -67,48 +68,45 @@ tbaccu <-
   if(!cluster){
     # sensitivity
     se<-c(round(tab1[2,2]/sum(tab1[,2]),3),
-          round(binom.test(tab1[2,2],sum(tab1[,2]))$conf.int,3))
+          round(binom.test(tab1[2,2],sum(tab1[,2]), conf.level = ci.level)$conf.int,3))
     # specificity
     sp<-c(round(tab1[1,1]/sum(tab1[,1]),3),
-          round(binom.test(tab1[1,1],sum(tab1[,1]))$conf.int,3))
+          round(binom.test(tab1[1,1],sum(tab1[,1]), conf.level = ci.level)$conf.int,3))
     # PPV
     ppv<-c(round(tab1[2,2]/sum(tab1[2,]),3),
-           round(binom.test(tab1[2,2],sum(tab1[2,]))$conf.int,3))
+           round(binom.test(tab1[2,2],sum(tab1[2,]), conf.level = ci.level)$conf.int,3))
     # npv
     npv<-c(round(tab1[1,1]/sum(tab1[1,]),3),
-           round(binom.test(tab1[1,1],sum(tab1[1,]))$conf.int,3))
+           round(binom.test(tab1[1,1],sum(tab1[1,]), conf.level = ci.level)$conf.int,3))
   }
   if(cluster) {
 
     binvar <- ifelse(var>ct, 1,0)
-    negbinvar <- ifelse(var<=ct, 1, 0)
-    vdata <- data.frame(binvar, reference, negbinvar, id)
-    vclus1 <- survey::svydesign(id = ~id, data=vdata)
+    svydata <- data.frame(binvar, reference, id)
+    vclus1 <- survey::svydesign(id = ~id, data=svydata)
 
     # se and sp
-    svyse <-
+    svy1 <-
       survey::svyby(~binvar, by = ~reference,
                     design=vclus1, survey::svymean)
-    #svysp <- survey::svyby(~negbinvar, by = ~reference, design=vclus1, svymean)
-    # confidence interval of reference=0 group = 1- confint(svyse)
 
     # sensitivity
     se<-c(round(tab1[2,2]/sum(tab1[,2]),3),
-          round(capci(confint(svyse)["1",]),3))
+          round(capci(confint(svy1, level = ci.level)["1",]),3))
     # specificity
     sp<-c(round(tab1[1,1]/sum(tab1[,1]),3),
-          round(capci(1-confint(svyse)["0",2:1]),3))
+          round(capci(1-confint(svy1, level = ci.level)["0",2:1]),3))
 
-    # ppv and npv svy
-    svyppv <-
+    # ppv and npv
+    svy2 <-
       survey::svyby(~reference, by = ~binvar,
                     design=vclus1, survey::svymean)
     # PPV
     ppv<-c(round(tab1[2,2]/sum(tab1[2,]),3),
-           round(capci(confint(svyppv)["1",]),3))
+           round(capci(confint(svy2, level = ci.level)["1",]),3))
     # npv
     npv<-c(round(tab1[1,1]/sum(tab1[1,]),3),
-           round(capci(1-confint(svyppv)["0",2:1]),3))
+           round(capci(1-confint(svy2, level = ci.level)["0",2:1]),3))
   }
 
   # format the estimates (95%CI) and add numbers
@@ -129,5 +127,7 @@ tbaccu <-
   }
   names(c1) <-
     c("Sensitivity","Specificity","PPV","NPV")
-  return(data.frame(Estimate = c1))
+
+  out <- data.frame(Estimate = c1)
+  return()
 }

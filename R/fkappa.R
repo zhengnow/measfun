@@ -5,6 +5,7 @@
 #'
 #' @param ratings a matrix, categorical ratings
 #' @param rater_per_subject integer
+#' @param rating.level default is NULL. Recommend specifying when ratings are factors.
 #' @param detail T/F, show rating details
 #'
 #' @return a list including n, the number of ratings, Fleiss kappa with confidence interval
@@ -29,16 +30,25 @@
 # m readers per subject
 # --------------------------
 fkappa <- function(ratings,
-                    rater_per_subject = NULL,
-                    detail = FALSE)
+                   rater_per_subject = NULL,
+                   rating.level = NULL,
+                   ci.level = 0.95,
+                   detail = FALSE, ...)
 {
   # if number of readers per subject is not specified, quit and print error message
   assert_stopifnot(is.na(rater_per_subject))
 
+  ratings <- na.omit(ratings)
+  if(!is.null(rating.level)) lev <- rating.level
+    else {
+      ratings <- as.matrix(ratings)
+      lev <- levels(as.factor(ratings))
+    }
+
   ns <- nrow(ratings)
   nr <- reader_per_subject
   ntolr <- ncol(ratings)
-  lev <- levels(as.factor(ratings))
+
   for (i in 1:ns) {
     frow <- factor(ratings[i, ], levels = lev)
     if (i == 1)
@@ -70,8 +80,10 @@ fkappa <- function(ratings,
       kappaK <- (pjk - pj)/(1 - pj)
       varkappaK <- 2/(ns * nr * (nr - 1))
       SEkappaK <- sqrt(varkappaK)
-      upper_ci <- kappaK + 1.96*SEkappaK
-      lower_ci <- kappaK - 1.96*SEkappaK
+      clvl <- qnorm((1+ci.level)/2)
+      upper_ci <- kappaK + clvl*SEkappaK
+      lower_ci <- kappaK - clvl*SEkappaK
+
       #uK <- kappaK/SEkappaK
       #p.valueK <- 2 * (1 - pnorm(abs(uK)))
       tableK <- ttab
